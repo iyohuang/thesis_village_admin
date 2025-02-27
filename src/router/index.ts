@@ -31,7 +31,12 @@ const routes: Array<RouteRecordRaw> = [
     name: 'QuestionDetail',
     component: () => import('@/views/QuestionDetail.vue'),
     // 传递参数时，路由会解析 :id 部分并传递给组件
-  }
+  },
+  {
+    path: '/aichat',
+    name: 'AiChat',
+    component: () => import('@/views/ChatAi.vue')
+  },
 ]
 
 const router = createRouter({

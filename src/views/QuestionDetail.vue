@@ -65,6 +65,15 @@
                                     <a-button type="link">回复</a-button>
                                 </span>
                                 <!-- 可以继续添加其他操作按钮 -->
+                                <!-- 添加采纳按钮 -->
+                                <span v-if="isQuestionAuthor && !item.accepted" class="comment-action"
+                                    @click="handleAccept(item)">
+                                    <a-button type="link" style="color: #52c41a;">采纳回答</a-button>
+                                </span>
+                                <span v-if="isQuestionAuthor && item.accepted" class="comment-action"
+                                    @click="handleAccept(item)">
+                                    <a-button type="link" style="color: #52c41a;">取消采纳</a-button>
+                                </span>
                             </template>
 
                             <template #datetime>
@@ -85,7 +94,8 @@
 
                         <!-- 回答的评论区 -->
                         <div class="answers-child" v-if="item.children && item.children.length">
-                            <AnswerItem v-for="child in item.children" :key="child.answerId" :answers="child" :qid="qid" />
+                            <AnswerItem v-for="child in item.children" :key="child.answerId" :answers="child"
+                                :qid="qid" />
                         </div>
                     </a-list-item>
                 </template>
@@ -96,16 +106,18 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeftOutlined } from '@ant-design/icons-vue';
+import { ArrowLeftOutlined, CheckCircleOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { defineProps } from 'vue';
-import { getTags, getQuestionDetail, submitAnswer, getAnswersForQuestion } from '@/api/aq';
+import { getTags, getQuestionDetail, submitAnswer, getAnswersForQuestion, acceptAnswer } from '@/api/aq';
 //   import { getQuestionDetail, submitAnswer } from '@/api/qna';
 import FilePreview from '@/views/FilePreview.vue';
 import CommentEditor from '@/views/CommentEditor.vue';
 import AnswerItem from '@/views/AnswerItem.vue';
+import useUserInfoStore from '@/store/userInfo.js'
+const userInfoStore = useUserInfoStore();
 
 interface Tag {
     id: number;
@@ -259,6 +271,12 @@ const getTagName = (tagId: number) => {
     return tags.value.find(t => t.id == tagId)?.name || '未知标签';
 };
 
+const isQuestionAuthor = computed(() => {
+    // 假设当前用户信息存储在currentUser中，需根据实际项目调整
+    const currentUserId = userInfoStore.info.id
+    return currentUserId === question.value.authorUid;
+});
+
 // 处理回复按钮点击
 const handleReply = (item) => {
     if (activeReplyId.value === item.id) {
@@ -271,7 +289,7 @@ const handleReply = (item) => {
 }
 
 // 处理回复提交
-const handleReplySubmit = async(item) => {
+const handleReplySubmit = async (item) => {
     console.log('提交回复:', {
         answerId: item.id,
         content: item.replyContent,
@@ -293,6 +311,24 @@ const handleReplySubmit = async(item) => {
     item.replyContent = ''
     activeReplyId.value = null
 }
+
+// 采纳回答处理方法
+const handleAccept = async (ans) => {
+    try {
+        // 调用API更新采纳状态（需实现acceptAnswer接口）
+        let res = await acceptAnswer(ans.answerId);
+        
+        // 更新本地数据
+        question.value.answers.forEach(a => {
+            if (a.answerId === ans.answerId){
+                a.accepted = res.data.accepted;
+            }
+        });
+        message.success('采纳成功');
+    } catch (error) {
+        message.error('采纳失败');
+    }
+};
 
 onMounted(() => {
     loadData();
@@ -393,5 +429,30 @@ onMounted(() => {
     margin-left: 40px;
     border-left: 2px solid #f0f0f0;
     padding-left: 20px;
+}
+
+.comment-action [ant-btn].ant-btn-link {
+    padding: 0 8px;
+}
+.comment-action [ant-btn].ant-btn-link:hover {
+    color: #73d13d !important;
+}
+
+::v-deep(.ant-comment-content-author) {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 控制用户名与标签间距 */
+}
+
+::v-deep(.ant-tag-green) {
+  margin-left: 8px; /* 单独控制已采纳标签左间距 */
+  order: 1; /* 将标签显示在用户名右侧 */
+}
+
+::v-deep(.ant-tag-green) {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 </style>

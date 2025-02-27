@@ -77,6 +77,10 @@ const items = ref([
     label: '问答',
   },
   {
+    key: '/aichat',
+    label: '智问',
+  },
+  {
     key: '/others',
     label: '其它',
   },

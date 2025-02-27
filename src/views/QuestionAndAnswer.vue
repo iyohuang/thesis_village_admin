@@ -64,8 +64,8 @@
 
                                 <template #description>
                                     <div class="question-content">{{ previewContent(item.content) }}</div>
-                                
-                                    <FilePreview :files="item.files" :filetype="item.filetype" /> 
+
+                                    <FilePreview :files="item.files" :filetype="item.filetype" />
                                     <div class="question-meta">
                                         <span class="author">提问者：{{ item.authorName }}</span>
                                         <span class="answers">回答数：{{ item.answerCount }}</span>
@@ -75,14 +75,15 @@
                             </a-list-item-meta>
 
                             <!-- 回答预览 -->
-                            <!-- <div class="answer-preview">
-                                <div v-for="answer in item.answers.slice(0, 2)" :key="answer.id" class="answer-item">
+                            <div class="answer-preview compact-mode">
+                                <div v-for="answer in sortedQuestionAnswers(item).slice(0, 2)" :key="answer.id"
+                                    class="answer-item dense">
                                     <a-comment>
                                         <template #avatar>
-                                            <a-avatar :src="answer.avatar" />
+                                            <a-avatar :src="answer.authorAvatar" />
                                         </template>
                                         <template #author>
-                                            <span>{{ answer.author }}</span>
+                                            <span>{{ answer.authorName }}</span>
                                             <a-tag v-if="answer.accepted" color="green">
                                                 <template #icon><check-circle-outlined /></template>
                                                 已采纳
@@ -91,20 +92,19 @@
                                         <template #content>
                                             <div class="answer-content">
                                                 {{ previewContent(answer.content) }}
-                                                <FilePreview :files="answer.files" />
+                                                <FilePreview :files="answer.files" :filetype="answer.filetype" />
                                             </div>
                                         </template>
                                         <template #datetime>
-                                            <span>{{ formatTime(answer.createTime) }}</span>
+                                            <span>{{ formatTime(answer.createdAt) }}</span>
                                         </template>
                                     </a-comment>
                                 </div>
-
                                 <a-button v-if="item.answerCount > 2" type="link"
-                                    @click="$router.push(`/questions/${item.id}`)" class="view-all-answers">
+                                    @click="$router.push(`/questions/${item.qid}`)" class="view-all-answers">
                                     查看全部{{ item.answerCount }}个回答 →
                                 </a-button>
-                            </div> -->
+                            </div>
                         </a-list-item>
                     </template>
                 </a-list>
@@ -117,7 +117,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { TagOutlined, CheckCircleOutlined } from '@ant-design/icons-vue';
-import { getTags, getQuestions, createQuestion } from '@/api/aq';
+import { getTags, getQuestions, createQuestion, getAnswersForQuestion } from '@/api/aq';
 import CommentEditor from '@/views/CommentEditor.vue';
 import FilePreview from '@/views/FilePreview.vue';
 
@@ -142,7 +142,7 @@ interface Answer {
     avatar: string;
     accepted: boolean;
     images: string[];
-    createTime: string;
+    createdAt: string;
 }
 
 interface Question {
@@ -156,7 +156,7 @@ interface Question {
     createdAt: string;
     files: string[];
     filetype: string;
-    answers: Answer[];
+    answers?: Answer[];
 }
 
 // 存储所有上传文件的信息
@@ -172,93 +172,7 @@ const submitting = ref(false);
 const tags = ref<Tag[]>([]);
 
 const questions = ref<Question[]>([
-    {
-        id: 'q1',
-        title: '水稻种植的最佳施肥时间？',
-        content: '请问在长江中下游地区，水稻种植的基肥和追肥的最佳施用时间分别是什么时候？需要特别注意哪些事项？',
-        tags: ['1', '5'],
-        author: '张大叔',
-        answerCount: 3,
-        createTime: '2024-03-20T09:00:00',
-        answers: [
-            {
-                id: 'a1',
-                content: '基肥建议在插秧前7-10天施用，追肥分两次：分蘖期和孕穗期。注意根据土壤肥力调整用量，推荐使用测土配方施肥技术...',
-                author: '农技专家王老师',
-                avatar: 'https://randomuser.me/api/portraits/men/1.jpg',
-                accepted: true,
-                images: [
-                    'https://example.com/fert1.jpg',
-                    'https://example.com/fert2.jpg'
-                ],
-                createTime: '2024-03-20T10:30:00'
-            },
-            {
-                id: 'a2',
-                content: '我们合作社的做法是：基肥用有机肥+复合肥，追肥主要看叶色变化...',
-                author: '合作社李主任',
-                avatar: 'https://randomuser.me/api/portraits/women/2.jpg',
-                accepted: false,
-                images: [],
-                createTime: '2024-03-20T11:15:00'
-            }
-        ],
-        attachments: [
-            {
-                uid: 'f1',
-                type: 'pdf',
-                url: 'https://example.com/rice-guide.pdf',
-                name: '水稻种植手册.pdf'
-            }
-        ]
-    },
-    {
-        id: 'q2',
-        title: '如何申请农业补贴？',
-        content: '今年最新的农业补贴政策有哪些变化？申请流程和需要准备的材料有什么更新吗？',
-        tags: ['2', '3'],
-        author: '王会计',
-        answerCount: 2,
-        createTime: '2024-03-19T14:20:00',
-        answers: [
-            {
-                id: 'a3',
-                content: '2024年主要变化包括：1. 新增智慧农业补贴项目 2. 申报材料电子化 3. 审批时限缩短至20个工作日...',
-                author: '政策解读张主任',
-                avatar: 'https://randomuser.me/api/portraits/men/3.jpg',
-                accepted: true,
-                images: [
-                    'https://example.com/policy1.jpg'
-                ],
-                createTime: '2024-03-19T15:45:00',
-                comments: [
-                    {
-                        id: 'c1',
-                        content: '请问养殖户可以申请吗？',
-                        author: '李养殖户',
-                        createdAt: '2024-03-19T16:00:00',
-                        replies: [
-                            {
-                                id: 'c1-1',
-                                content: '养殖类补贴在第三章有专门说明',
-                                author: '政策解读张主任',
-                                createdAt: '2024-03-19T16:15:00'
-                            }
-                        ]
-                    }
-                ]
-            }
-        ],
-        attachments: [
-            {
-                uid: 'f2',
-                type: 'video',
-                url: 'https://example.com/subsidy-video.mp4',
-                name: '申报流程演示.mp4',
-                duration: 120
-            }
-        ]
-    }
+
 ]);
 const selectedTags = ref<number[]>([]);
 const questionFiles = ref<FileItem[]>([]);
@@ -298,6 +212,31 @@ const handlePageChange = (page: number, pageSize: number) => {
 const sortedTags = computed(() => {
     return [...tags.value].sort((a, b) => a.name.localeCompare(b.name));
 });
+
+
+// 计算属性排序回答
+const sortedQuestionAnswers = (question: Question) => {
+    // 确保存在可迭代的数组
+    const answers = Array.isArray(question.answers) ? question.answers : []
+
+    return [...answers].sort((a, b) => {
+        // 处理可能的undefined值
+        const aAccepted = a.accepted || false
+        const bAccepted = b.accepted || false
+
+        // 优先显示已采纳回答
+        const acceptedCompare = Number(bAccepted) - Number(aAccepted)
+        if (acceptedCompare !== 0) return acceptedCompare
+
+        // 处理可能的undefined时间
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+
+        return bTime - aTime
+    })
+}
+// console.log("sortedQuestionAnswers:", sortedQuestionAnswers);
+
 
 const tagOptions = computed(() => {
     return tags.value.map(tag => ({
@@ -378,16 +317,63 @@ const loadData = async () => {
             }
             return item;
         });
-        console.log('处理后的问题数据:', questions.value);
         // 设置分页总数
         pagination.value.total = questionsRes.data.total;
 
+        // questions.value = questionsRes.data.records.map(item => {
+        //     console.log("resanswers.data;",resanswers);
+
+        //     item.answers = resanswers.data;
+        //     if (resanswers.code === 200) {
+        //         item.answers = resanswers.data.map(item2 => {
+        //             if (typeof item2.files === 'string') {
+        //                 try {
+        //                     item2.files = JSON.parse(item2.files);
+        //                 } catch (error) {
+        //                     console.error('解析 files 失败：', error);
+        //                     item2.files = [];
+        //                 }
+        //             }
+        //             return item2;
+        //         });
+        //     } else {
+        //         item.answers = [];
+        //     }
+        //     return item;
+        // });
     } catch (error) {
         message.error('数据加载失败，请稍后再试');
         console.error('加载问题数据时发生错误:', error);
     } finally {
         loading.value = false;
     }
+    try {
+        for (const item of questions.value) {
+            const resanswers = await getAnswersForQuestion(item.qid);
+            if (resanswers.code === 200) {
+                item.answers = resanswers.data.map(item2 => {
+                    if (typeof item2.files === 'string') {
+                        try {
+                            item2.files = JSON.parse(item2.files);
+                        } catch (error) {
+                            console.error('解析 files 失败：', error);
+                            item2.files = [];
+                        }
+                    }
+                    return item2;
+                });
+            } else {
+                item.answers = [];
+            }
+        }
+        console.log('处理后的问题数据:', questions.value);
+    } catch (error) {
+        message.error('数据加载失败，请稍后再试');
+        console.error('加载问题回答数据时发生错误:', error);
+    } finally {
+        loading.value = false;
+    }
+
 };
 
 // 处理单个文件上传成功
@@ -414,14 +400,14 @@ const handleQuestionFiles = (files: FileItem[]) => {
 
 // 提交问题时使用
 const submitQuestion = async () => {
-    if(!newQuestion.value.content.trim()&&!newQuestion.value.title.trim()){
+    if (!newQuestion.value.content.trim() && !newQuestion.value.title.trim()) {
         return;
     }
-    if(!newQuestion.value.content.trim()){
+    if (!newQuestion.value.content.trim()) {
         message.error('请输入问题内容');
         return;
     }
-    if(!newQuestion.value.title.trim()){
+    if (!newQuestion.value.title.trim()) {
         message.error('请输入问题标题');
         return;
     }
@@ -432,7 +418,7 @@ const submitQuestion = async () => {
             content: newQuestion.value.content,
             tags: newQuestion.value.tags,
             files: uploadedFiles.value.map(file => file.url), // 提交所有文件URL
-            filetype : newQuestion.value.fileType
+            filetype: newQuestion.value.fileType
         });
 
         // 提交成功后清空文件列表
@@ -531,9 +517,44 @@ onMounted(() => {
 }
 
 .answer-preview {
-    margin-top: 16px;
+    margin-top: 0px;
     border-top: 1px dashed #f0f0f0;
-    padding-top: 16px;
+    padding-top: 0px;
+}
+
+.compact-mode {
+    ::v-deep .ant-comment-inner {
+        padding: 8px 0;
+        /* 减少内边距 */
+
+        .ant-comment-content-author {
+            margin-bottom: 4px;
+            /* 作者信息间距 */
+
+            .ant-tag {
+                margin-left: 4px;
+                /* 标签间距 */
+                padding: 0 4px;
+                /* 标签内边距 */
+            }
+        }
+
+        .ant-comment-content-detail {
+            line-height: 1.4;
+            /* 紧凑行高 */
+        }
+
+    }
+
+    .answer-item.dense {
+        margin: 4px 0;
+        /* 回答项间距 */
+
+        +.answer-item {
+            border-top: 1px solid #f0f0f0;
+            /* 分隔线替代间距 */
+        }
+    }
 }
 
 .answer-content {
@@ -550,5 +571,17 @@ onMounted(() => {
 .view-all-answers {
     margin-top: 8px;
     padding-left: 0;
+}
+
+::v-deep(.ant-tag-green) {
+  margin-left: 8px; /* 单独控制已采纳标签左间距 */
+  order: 1; /* 将标签显示在用户名右侧 */
+}
+
+::v-deep(.ant-tag-green) {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 </style>

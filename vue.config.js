@@ -22,6 +22,7 @@ module.exports = defineConfig({
     },
     client: { //去除红色遮罩层！
       overlay: false,  
-    }
+    },
+    compress:false,
   }
 })

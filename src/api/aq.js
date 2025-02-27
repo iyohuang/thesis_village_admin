@@ -55,9 +55,9 @@ export const createAnswer = (questionId, data) => {
   });
 };
 
-export const acceptAnswer = (questionId, answerId) => {
-  return request.patch(`/aq/questions/${questionId}/answers/${answerId}/accept`)
-}
+// export const acceptAnswer = (questionId, answerId) => {
+//   return request.patch(`/aq/questions/${questionId}/answers/${answerId}/accept`)
+// }
 
 export const getQuestionAnswers = (questionId, params = {}) => {
   return request.get(`/aq/questions/${questionId}/answers`, {
@@ -90,6 +90,10 @@ export const getAnswerComments = (answerId) => {
 export const submitAnswer = (data) => {
   return request.post('/aq/answers', data)
 }
+
+export const acceptAnswer = (answerId) => {
+  return request.patch(`/aq/answers/${answerId}/toggle-accept`);
+};
 
 /**
  * 文件上传API

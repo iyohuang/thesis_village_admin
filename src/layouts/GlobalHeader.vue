@@ -89,6 +89,10 @@ const items = ref([
     label: '上交文件',
   },
   {
+    key: '/email',
+    label: '邮箱',
+  },
+  {
     key: '/others',
     label: '其它',
   },

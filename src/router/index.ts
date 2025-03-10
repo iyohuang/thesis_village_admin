@@ -46,6 +46,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/user/collectlaunch',
     name: 'UserSubmit',
     component: () => import('@/views/UserSubmit.vue')
+  },
+  {
+    path: '/email',
+    name: 'Email',
+    component: () => import('@/views/Email.vue')
   }
 ]
 

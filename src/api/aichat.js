@@ -5,3 +5,23 @@ import request from '@/utils/requestUtils.js'
 export const testchat = (data) => {
     return request.post('/ai/chatchat', data);
 }
+
+export const getSessions = (userId) => {
+    return request.get(`/ai/sessions?userId=${userId}`);
+}
+
+export const getMessages = (id) => {
+    return request.get(`/ai/messages?sessionId=${id}`);
+}
+
+export const PostNewMsg = (data) => {
+    return request.post('/ai/messages', data);
+}
+
+export const createSession = (data) => {
+    return request.post('/ai/sessions', data);
+}
+
+export const deleteSession = (id) => {
+    return request.delete(`/ai/sessions/${id}`);
+}

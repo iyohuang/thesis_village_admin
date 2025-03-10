@@ -37,6 +37,16 @@ const routes: Array<RouteRecordRaw> = [
     name: 'AiChat',
     component: () => import('@/views/ChatAi.vue')
   },
+  {
+    path: '/collectlaunch',
+    name: 'CollectLaunch',
+    component: () => import('@/views/CollectLaunch.vue')
+  },
+  {
+    path: '/user/collectlaunch',
+    name: 'UserSubmit',
+    component: () => import('@/views/UserSubmit.vue')
+  }
 ]
 
 const router = createRouter({

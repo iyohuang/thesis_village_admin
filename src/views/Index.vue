@@ -4,7 +4,7 @@
     <a-card title="分享新鲜事" class="post-editor">
       <a-textarea v-model:value="newPost.content" placeholder="这一刻的想法..." :auto-size="{ minRows: 3 }" />
       <!-- 图片上传 -->
-      <a-upload v-model:fileList="fileList" list-type="picture-card" multiple :before-upload="beforeUpload"
+      <a-upload accept="image/jpeg,image/png,image/gif,image/webp" v-model:fileList="fileList" list-type="picture-card" multiple :before-upload="beforeUpload"
         :customRequest="customRequest" @change="handleImageChange" :maxCount="9">
         <div v-if="newPost.images.length < 9">
           <plus-outlined />
@@ -68,12 +68,10 @@ import { ref, onMounted } from 'vue';
 import { PlusOutlined, HeartOutlined } from '@ant-design/icons-vue';
 import { Modal, message } from 'ant-design-vue';
 import { useRouter } from 'vue-router';
-// 假设你有如下 API 方法（你可根据实际接口调整）
 import { getMoments, createMoment, deleteMoment, toggleMomentLike, commentPost, uploadMomentPic, getCommentsForMoment, toggleCommentLike } from '@/api/social.js';
 import CommentList from './CommentList.vue'; // 递归组件
 import useUserInfoStore from '@/store/userInfo.js'
 const userInfoStore = useUserInfoStore();
-// 当前用户ID（假设存储在localStorage中）
 const currentUserId = userInfoStore.info.id
 
 const router = useRouter();
@@ -195,7 +193,7 @@ const beforeUpload = (file: File) => {
   const isImage = file.type.startsWith('image/');
   if (!isImage) {
     message.error('只能上传图片文件！');
-    return false;
+    return Promise.reject(false);
   }
   return true;
 };
@@ -238,10 +236,6 @@ const customRequest = async ({ file, onSuccess, onError }: any) => {
 
 
 const submitPost = async () => {
-  // if (!newPost.value.content.trim()) {
-  //   message.warning('请输入内容');
-  //   return;
-  // }
 
   const payload = {
     content: newPost.value.content,
@@ -290,9 +284,12 @@ const deletePost = async (id: number) => {
 const handleImageChange = ({ fileList: newFileList }: any) => {
   console.log("图片上传变化", newFileList);
 
+  // 过滤
+  fileList.value = newFileList.filter((file: any) => file.status !== "error" && file.type !== "application/pdf");
+
   // 确保 images 只存储字符串 URL
   newPost.value.images = newFileList
-    .filter((file: any) => file.status === "done" && file.response && file.response.url)
+    .filter((file: any) => file.status === "done" && file.response && file.response.url )
     .map((file: any) => file.response.url);
 
   console.log("当前已上传图片列表：", newPost.value.images);

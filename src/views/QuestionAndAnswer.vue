@@ -16,7 +16,7 @@
             <a-layout-content class="content-area">
                 <!-- 提问表单 -->
                 <a-card name="questionForm" class="ask-card" title="我要提问">
-                    <a-form :model="newQuestion" :rules="myrules" @finish="submitQuestion">
+                    <a-form :model="newQuestion" :rules="myrules" >
                         <a-form-item name="title" label="问题标题" required>
                             <a-input v-model:value="newQuestion.title" placeholder="请输入问题标题" :maxlength="50"
                                 show-count />
@@ -185,7 +185,7 @@ const newQuestion = ref({
 const myrules = {
     title: [{ required: true, message: '请输入问题标题' }],
     content: [{ required: true, message: '请填写问题描述' }],
-    tags: [{ type: 'array', required: true, message: '请选择至少一个标签' }]
+    // tags: [{ type: 'array', required: true, message: '请选择至少一个标签' }]
 };
 const questionEditor = ref<InstanceType<typeof CommentEditor>>();
 
@@ -423,7 +423,7 @@ const submitQuestion = async () => {
 
         // 提交成功后清空文件列表
         uploadedFiles.value = [];
-
+        // location.reload();
     } catch (error) {
         console.error('提交失败:', error);
     }

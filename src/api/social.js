@@ -56,7 +56,7 @@ export const uploadMomentPic = (formData) => {
     return request.post('/file/upload-momentpic', formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
-        },
+        }
     });
 }
 

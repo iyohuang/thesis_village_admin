@@ -6,7 +6,8 @@
             <!-- <file-outlined style="margin-right: 8px;" /> -->
             <component :is = "getFileIcons(filetype)" style="margin-right: 2px;" />
             <!-- <span>{{ file }}</span> -->
-            <a href="javascript:void(0);" @click="handleFileClick(file)">
+            <!-- href="javascript:void(0);" -->
+            <a @click="handleFileClick(file)">
                 查看附件
             </a>
         </div>
@@ -21,7 +22,7 @@ import {
   PictureOutlined,
   VideoCameraOutlined
 } from '@ant-design/icons-vue';
-
+import {downloadFile} from '@/api/filecollection';
 interface FileItem {
     uid: string;
     type: 'image' | 'pdf' | 'video';
@@ -44,7 +45,9 @@ const fileTypeIcons = {
 
 console.log('Files Prop:', props.files);
 const handleFileClick = (url: string) => {
-    window.open(url, '_blank');
+    // axios.get(`/api/files/download/${encodeURIComponent(url)}`, '_blank');
+    // downloadFile(url);
+    window.open(url);
 };
 
 const getFileIcons = (fileType) => {

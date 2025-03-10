@@ -2,15 +2,15 @@
   <div class="chat-window">
     <!-- 当前角色标题 -->
     <div class="role-header">
-      <component :is="role.icon" class="role-icon" />
-      <span class="role-title">{{ role.name }}</span>
+      <component :is=getRoleIcon(session.roleId) class="role-icon" />
+      <span class="role-title">{{ session.title }}</span>
     </div>
 
     <!-- 消息列表 -->
-    <div class="message-container">
-      <div v-for="(msg, index) in messages" :key="index" :class="['message-bubble', msg.role]">
+    <div ref="messagesContainer" class="message-container">
+      <div v-for="(msg, index) in messages" :key="index" :class="['message-bubble', msg.roleType]">
         <div class="message-avatar">
-          <component :is="msg.role === 'user' ? UserOutlined : RobotOutlined" />
+          <component :is="msg.roleType === 'user' ? UserOutlined : RobotOutlined" />
         </div>
         <a-card class="message-card">
           <div class="message-content">{{ msg.content }}</div>
@@ -33,66 +33,65 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount, reactive } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, reactive, nextTick, defineProps, defineEmits } from 'vue'
 import {
   UserOutlined,
   RobotOutlined,
-  SendOutlined
+  SendOutlined,
+  BankOutlined,
+  FileTextOutlined,
+
 } from '@ant-design/icons-vue'
 import { EventSourcePolyfill } from 'event-source-polyfill'
 import { useTokenStore } from '@/store/token.js'
 import { message } from 'ant-design-vue'
 import { testchat } from '@/api/aichat'
+import { getMessages, PostNewMsg } from '@/api/aichat'
+const emit = defineEmits(['change-temp']);
 const tokenStore = useTokenStore();
 const props = defineProps({
   role: {
     type: Object,
     required: true
+  },
+  session: {
+    type: Object,
+    required: true
   }
 })
 
-// 消息列表与发送逻辑（与之前实现类似）
+const RoleTypeIcons = {
+  default: RobotOutlined,
+  agriculture: BankOutlined,
+  tax: FileTextOutlined
+  // 添加更多类型映射...
+};
+const getRoleIcon = (roleId) => {
+  return RoleTypeIcons[roleId] || UserOutlined;
+}
+
+
+// 消息列表与发送逻辑
 const messages = ref([])
 const inputMessage = ref('')
 const isLoading = ref(false)
 let eventSource = ref([]);
-//-------------test
-// 建立 SSE 连接
-onMounted(() => {
-  //
-  // eventSource = new EventSourcePolyfill('api/ai/chat-stream', {
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //     "Authorization": tokenStore.token,
-  //     'Cache-Control': 'no-cache',
-  //     'Connection': 'keep-alive',
-  //     'Access-Control-Allow-Origin': '*',
-  //   },
-  // })
-  // eventSource.onopen = (event) => {
-  //   console.log("连接成功", event);
-  // };
-  // eventSource.addEventListener('message', (e) => {
-  //   console.log("接收到消息", e.data);
-  //   // messages.value.push(e.data);
-  // });
-
-  // 监听默认的 'message' 事件
-  // eventSource.onmessage = (event) => {
-  //   // console.log('Message event:', event.data);
-  // };
-
-  //  eventSource.addEventListener('chat', (e) => {
-  //   console.log("接收到消息", e.data);
-  //   messages.value.push(e.data);
-  // });
-
-
-  // eventSource.onerror = (err) => {
-  //   console.error('SSE Error:', err);
-  //   eventSource.close();
-  // };
-});
+const messagesContainer = ref(null)
+const loadHistory = async () => {
+  try {
+    // loadingHistory.value = true
+    const { data } = await getMessages(props.session.id)
+    messages.value = data.map(m => ({
+      ...m,
+      // status: 'success' // 历史消息默认成功状态
+    }))
+    scrollToBottom()
+  } catch (error) {
+    message.error('加载历史消息失败')
+  } finally {
+    // loadingHistory.value = false
+  }
+}
 
 // 发送消息（模拟用户输入）
 const sendMessage = async () => {
@@ -115,15 +114,23 @@ const sendMessage = async () => {
   })
   console.log("发送消息:", inputMessage.value);
 
-  messages.value.push({
-    role: 'user',
+  const nowsessionid = props.session.id
+
+  const userMsg = reactive({
+    roleType: 'user',
     content: inputMessage.value.trim()
   })
+
+  messages.value.push(userMsg);
+  if (props.session.isTemp) {
+    // 触发确认事件
+    emit('change-temp', props.session.id, inputMessage.value)
+  }
 
   inputMessage.value = '';
 
   const aiMsg = reactive({
-    role: 'assistant',
+    roleType: 'assistant',
     content: ''
   })
   messages.value.push(aiMsg);
@@ -144,23 +151,58 @@ const sendMessage = async () => {
   });
 
   eventSource.onerror = (err) => {
-    console.error('SSE Error:', err);
+    // console.error('SSE Error:', err);
     eventSource.close();
+    uploadnewmsg(userMsg, aiMsg);
   };
+
+  const uploadnewmsg = async (userMsg, aiMsg) => {
+
+    const lastmsg = reactive([{ ...userMsg }, { ...aiMsg }].map(obj => ({
+      ...obj,
+      sessionId: nowsessionid
+    })))
+    console.log("last", lastmsg)
+    try {
+      await PostNewMsg(lastmsg)
+    } catch (error) {
+      console.error("customRequest error:", error);
+      message.error("上传失败，请重试");
+    }
+  }
 
   eventSource.addEventListener('done', () => {
     isLoading.value = false
   })
 };
 
-const handleSend = async () => {
-  // 发送逻辑（调用API）
+
+// 自动滚动到底部
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
 }
 
 // 角色变化时重置对话
 watch(() => props.role, () => {
   messages.value = []
 })
+
+watch(() => props.session.id, (newVal) => {
+  if (newVal) {
+    resetMessages()
+    loadHistory(newVal)
+  }
+})
+const resetMessages = () => {
+  messages.value = []
+}
+onMounted(() => {
+  loadHistory();
+});
 </script>
 
 <style scoped>
@@ -238,5 +280,11 @@ watch(() => props.role, () => {
   width: 64px;
   height: auto;
   border-radius: 0 8px 8px 0;
+}
+
+pre {
+  white-space: pre-wrap;
+  /* font-family: inherit;
+  margin: 0; */
 }
 </style>

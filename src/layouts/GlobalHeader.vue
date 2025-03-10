@@ -16,7 +16,7 @@
       <a-col flex="140px">
         <div class="user-login-status">
           <!-- 如果已登录，显示头像 -->
-          <a-popover v-if="isLoggedIn" trigger="hover" title="用户菜单" placement="bottom"
+          <a-popover v-if="props.isLoggedIn" trigger="hover" title="用户菜单" placement="bottom"
             :overlayClassName='user - menu - popover'>
             <template #content>
               <a-menu class="user-menu">
@@ -79,6 +79,14 @@ const items = ref([
   {
     key: '/aichat',
     label: '智问',
+  },
+  {
+    key: '/collectlaunch',
+    label: '文件收集',
+  },
+  {
+    key: '/user/collectlaunch',
+    label: '上交文件',
   },
   {
     key: '/others',

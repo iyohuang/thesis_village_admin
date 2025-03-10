@@ -49,3 +49,8 @@ export const uploadAvatar = (formData) => {
 export const updatePasswordService = (oldPassword, newPassword) => {
     return request.put('/user/updatePassword', { oldPassword, newPassword });
 }
+
+//获取用户列表
+export const userListService = () => {
+    return request.get('/user/list')
+}

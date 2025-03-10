@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import GlobalHeader from './GlobalHeader.vue';
 import LoginForm from '@/views/LoginForm.vue';
 import RegisterForm from '@/views/RegisterForm.vue';
@@ -76,6 +76,12 @@ onMounted(() => {
   // 如果 token 存在，则表示已登录
   isLoggedIn.value = !!tokenStore.token;
 });
+
+//computed去动态修改header的登录状态
+watch(() => tokenStore.token, (newVal) => {
+  isLoggedIn.value = !!newVal;
+});
+
 
 // 登录成功后，隐藏弹框并更新登录状态
 const handleLoginSuccess = () => {

@@ -12,3 +12,7 @@ export const getAllEmailUsers = () => {
 export const getEmailHistory = () => {
     return request.get('/email/history');
 }
+
+export const getAvailableEmails = () => {
+    return request.get('/email/available');
+}

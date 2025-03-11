@@ -54,3 +54,13 @@ export const updatePasswordService = (oldPassword, newPassword) => {
 export const userListService = () => {
     return request.get('/user/list')
 }
+
+//判断是否存在授权码
+export const checkAuthCodeService = (userId,email) => {
+    return request.get(`/user/isAushCodeExit/${userId}/${email}`);
+}
+
+//绑定授权码
+export const bindAuthCode = (data) => {
+    return request.post(`/user/bindAuthCode`, data);
+}

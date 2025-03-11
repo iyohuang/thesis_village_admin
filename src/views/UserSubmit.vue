@@ -13,7 +13,7 @@
               </a-button>
               <a-upload v-model:file-list="item.files" :before-upload="() => false" @change="handleUpload(item)"
                  :show-upload-list="false">
-                <a-button type="primary" :icon="h(UploadOutlined)" >
+                <a-button type="primary" :icon="h(UploadOutlined)" :disabled="!isEditable(item)">
                   {{ item.submitted ? '修改提交' : '上传文件' }}
                 </a-button>
               </a-upload>

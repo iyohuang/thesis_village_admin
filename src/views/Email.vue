@@ -32,10 +32,18 @@
             新建邮件
           </a-button>
         </template>
-
+        <a-alert v-if="!availableEmails.length && !selectedHistoryId" type="warning" show-icon message="未绑定发件邮箱"
+          description="您还没有可用的发件邮箱，请先前往个人中心绑定邮箱" style="margin-bottom: 24px">
+          <template #action>
+            <a-button type="primary" size="small" @click="goToProfile">
+              立即绑定
+            </a-button>
+          </template>
+        </a-alert>
         <a-form :model="formState" :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
           <a-form-item label="发件人">
-            <a-select v-model:value="formState.from" :disabled="!!selectedHistoryId">
+            <a-select v-model:value="formState.from" :disabled="!!selectedHistoryId || !availableEmails.length"
+              placeholder="请先绑定发件邮箱">
               <a-select-option v-for="email in availableEmails" :key="email" :value="email">
                 {{ email }}
               </a-select-option>
@@ -88,7 +96,10 @@ import { ref, reactive, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import RichTextEditor from '@/views/RichTextEditor.vue';
 import { PaperClipOutlined } from '@ant-design/icons-vue';
-import { sendEmail, getAllEmailUsers, getEmailHistory } from '@/api/emails'
+import { sendEmail, getAllEmailUsers, getEmailHistory, getAvailableEmails } from '@/api/emails'
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const formState = reactive({
   from: '',
@@ -104,6 +115,9 @@ const historyList = ref([]);
 const availableEmails = ref(['717146638@qq.com', 'backup@yourcompany.com']);
 const selectedHistoryId = ref(null);
 
+const goToProfile = () => {
+  router.push('/user/profile')
+}
 
 const extractFileNameRegex = (filePath) => {
   // 先提取纯文件名（含扩展名）
@@ -227,8 +241,18 @@ const filterEmailOption = (input, option) => {
   return option.value.toLowerCase().indexOf(input.toLowerCase()) >= 0;
 };
 
+const loadavailableEmails = async () => {
+  try {
+    const res = await getAvailableEmails();
+    availableEmails.value = res.data;
+  } catch (error) {
+    message.error('获取可用邮箱失败');
+  }
+}
+
 // 初始化加载历史记录
 onMounted(() => {
+  loadavailableEmails();
   loadAllUser();
   loadHistory();
 });

@@ -125,66 +125,7 @@ const fetchMoments = async () => {
 
 // 加载假数据（实际中应调用接口）
 onMounted(() => {
-  //模拟加载假数据，包含嵌套评论
-  // posts.value = [
-  //   {
-  //     id: 1,
-  //     userId: 1,
-  //     userAvatar: "https://dummyimage.com/40x40/000/fff.png&text=U1",
-  //     userName: "张三",
-  //     createdAt: new Date().toISOString(),
-  //     content: "这是一条测试动态，欢迎大家关注！",
-  //     images: ["https://dummyimage.com/100x100/000/fff.png&text=Img1"],
-  //     liked: false,
-  //     likesCount: 5,
-  //     comments: [
-  //       {
-  //         id: 101,
-  //         userId: 2,
-  //         userAvatar: "https://dummyimage.com/30x30/000/fff.png&text=U2",
-  //         userName: "李四",
-  //         content: "不错的动态！",
-  //         createdAt: new Date().toISOString(),
-  //         likesCount: 2,
-  //         liked: false,
-  //         parentId: null, // 顶级评论，无父评论
-  //         // 对于顶级评论，不需要 parentUserName
-  //         children: [
-  //           {
-  //             id: 201,
-  //             userId: 3,
-  //             userAvatar: "https://dummyimage.com/30x30/000/fff.png&text=U3",
-  //             userName: "王五",
-  //             content: "我也觉得不错",
-  //             createdAt: new Date().toISOString(),
-  //             likesCount: 1,
-  //             liked: false,
-  //             parentId: 101,
-  //             parentUserName: "李四", // 子评论显示“王五 回复了 李四”
-  //             children: [] // 继续嵌套的子评论可以继续添加此字段
-  //           }
-  //         ]
-  //       }
-  //     ]
-  //   },
-  //   {
-  //     id: 2,
-  //     userId: 2,
-  //     userAvatar: "https://dummyimage.com/40x40/000/fff.png&text=U2",
-  //     userName: "李四",
-  //     createTime: new Date().toISOString(),
-  //     content: "今天心情很好，分享一张美图。",
-  //     images: [
-  //       "https://dummyimage.com/100x100/ff0000/fff.png&text=Img2",
-  //       "https://dummyimage.com/100x100/00ff00/fff.png&text=Img3"
-  //     ],
-  //     liked: true,
-  //     likesCount: 10,
-  //     comments: [] // 无评论
-  //   }
-  // ];
   fetchMoments();
-  // console.log(posts.value);
 });
 
 

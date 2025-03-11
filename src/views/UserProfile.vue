@@ -4,11 +4,9 @@
     <div class="content">
       <a-form :model="formState" layout="vertical">
         <!-- 头像上传 -->
-        <a-form-item >
+        <a-form-item>
           <a-upload v-model:fileList="fileList" list-type="picture-card" :before-upload="beforeUpload"
             @change="handleAvatarChange" :remove="handleRemove" :customRequest="customRequest" :maxCount="1">
-            <!-- <img v-if="formState.avatar" :src="formState.avatar" alt="avatar"
-              style="width: 100px; height: 100px; border-radius: 50%;" /> -->
             <div v-if="!formState.avatar">
               <plus-outlined />
               <div class="ant-upload-text">上传头像</div>
@@ -31,6 +29,21 @@
           <a-input v-model:value="formState.email" />
         </a-form-item>
 
+        <!-- 邮箱授权码 -->
+        <a-form-item v-if="formState.email" label="邮箱授权码">
+          <div v-if="!showAuthCodeInput">
+            <span v-if="formState.hasAuthCode" style="margin-right: 10px;">已绑定授权码</span>
+            <a-button @click="handleAuthCodeAction">{{ formState.hasAuthCode ? '修改' : '绑定' }}</a-button>
+          </div>
+          <div v-else>
+            <a-input-password v-model:value="authCodeInput" placeholder="请输入授权码" style="margin-bottom: 10px;" />
+            <div>
+              <a-button type="primary" @click="handleBindAuthCode" style="margin-right: 10px;">提交</a-button>
+              <a-button @click="cancelAuthCodeInput">取消</a-button>
+            </div>
+          </div>
+        </a-form-item>
+
         <!-- 提交按钮 -->
         <a-form-item>
           <a-button type="primary" @click="handleSubmit">保存</a-button>
@@ -48,7 +61,7 @@ import { ref, onMounted } from 'vue';
 import { PlusOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { useRouter } from 'vue-router';
-import { userInfoService, userInfoUpdateService, uploadAvatar } from '@/api/user.js';
+import { userInfoService, userInfoUpdateService, uploadAvatar, checkAuthCodeService, bindAuthCode } from '@/api/user.js';
 
 const router = useRouter();
 
@@ -59,10 +72,13 @@ const formState = ref({
   phoneNumber: '',
   email: '',
   avatar: '',
+  hasAuthCode: false,
 });
 
 // 文件上传相关
 const fileList = ref([]);
+const showAuthCodeInput = ref(false);
+const authCodeInput = ref('');
 
 // 获取用户信息
 const fetchProfile = async () => {
@@ -79,7 +95,51 @@ const fetchProfile = async () => {
       },
     ];
   }
+  
+  formState.value.hasAuthCode = false;
+  if (res.data.email) {
+    let authexit = await checkAuthCodeService(res.data.id, res.data.email);
+    formState.value.hasAuthCode = authexit.data
+  }
 };
+
+// 处理授权码操作
+const handleAuthCodeAction = () => {
+  showAuthCodeInput.value = true;
+  if (formState.value.hasAuthCode) {
+    message.info('请重新输入新的授权码');
+  }
+};
+
+// 取消授权码输入
+const cancelAuthCodeInput = () => {
+  showAuthCodeInput.value = false;
+  authCodeInput.value = '';
+};
+
+// 绑定/更新授权码
+const handleBindAuthCode = async () => {
+  if (!authCodeInput.value) {
+    message.error('请输入授权码');
+    return;
+  }
+
+  try {
+    await bindAuthCode({
+      userId: formState.value.id,
+      email: formState.value.email,
+      authCode: authCodeInput.value
+    });
+    message.success('授权码绑定成功');
+    formState.value.hasAuthCode = true;
+    showAuthCodeInput.value = false;
+    authCodeInput.value = '';
+  } catch (error) {
+    message.error('操作失败，请重试');
+  }
+};
+
+
 
 // 头像上传前校验
 const beforeUpload = (file: File) => {

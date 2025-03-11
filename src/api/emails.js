@@ -4,3 +4,11 @@ import request from '@/utils/requestUtils.js'
 export const sendEmail = (data) => {
     return request.post('/email/send', data, { headers: { 'Content-Type': 'multipart/form-data' } });
 }
+
+export const getAllEmailUsers = () => {
+    return request.get('/email/users');
+}
+
+export const getEmailHistory = () => {
+    return request.get('/email/history');
+}

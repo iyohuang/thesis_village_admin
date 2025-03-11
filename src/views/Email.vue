@@ -1,18 +1,22 @@
 <template>
   <a-row :gutter="24">
     <!-- 左侧历史记录 -->
-    <a-col :span="8">
+    <a-col :span="6">
       <a-card title="发送历史" style="height: 80vh">
         <a-list :data-source="historyList" item-layout="vertical">
           <template #renderItem="{ item }">
-            <a-list-item>
-              <a-list-item-meta :title="item.subject" :description="`收件人：${item.to}`" />
+            <a-list-item :class="{ 'selected-history': selectedHistoryId === item.id }"
+              @click="handleSelectHistory(item)">
+              <a-list-item-meta :title="item.subject"
+                :description="`发件人：${item.senderEmail} | 收件人：${JSON.parse(item.receiverEmail).join(', ')}`" />
               <template #actions>
                 <span>{{ formatTime(item.sendTime) }}</span>
-                <a-tag :color="item.status === 'success' ? 'green' : 'red'">
-                  {{ item.status === 'success' ? '成功' : '失败' }}
-                </a-tag>
               </template>
+              <!-- 附件预览 -->
+              <div v-if="JSON.parse(item.files).length" class="attachment-preview">
+                <paper-clip-outlined />
+                {{ JSON.parse(item.files).length }}个附件
+              </div>
             </a-list-item>
           </template>
         </a-list>
@@ -21,43 +25,55 @@
 
     <!-- 右侧发送表单 -->
     <a-col :span="16">
-      <a-card title="发送新邮件">
-        <a-form :model="formState" :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }" @finish="handleSubmit">
-          <a-form-item label="发件人" name="from" :rules="[{ required: true, message: '请选择发件邮箱' }]">
-            <a-select v-model:value="formState.from">
+      <a-card :title="selectedHistoryId ? '邮件详情' : '发送新邮件'">
+        <!-- 新建邮件按钮 -->
+        <template #extra>
+          <a-button v-if="selectedHistoryId" type="primary" @click="handleNewEmail">
+            新建邮件
+          </a-button>
+        </template>
+
+        <a-form :model="formState" :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
+          <a-form-item label="发件人">
+            <a-select v-model:value="formState.from" :disabled="!!selectedHistoryId">
               <a-select-option v-for="email in availableEmails" :key="email" :value="email">
                 {{ email }}
               </a-select-option>
             </a-select>
           </a-form-item>
 
-          <a-form-item label="收件人" name="to" :rules="[
-            { required: true, message: '请输入收件人邮箱' },
-            { type: 'email', message: '邮箱格式不正确' }
-          ]">
-            <a-input v-model:value="formState.to" placeholder="多个邮箱用分号分隔" />
+          <a-form-item label="收件人">
+            <a-select v-model:value="formState.to" mode="tags" :disabled="!!selectedHistoryId" placeholder="输入邮箱后按分号分隔">
+              <a-select-option v-for="user in allUsers" :key="user.email" :value="user.email">
+                {{ `${user.username} <${user.email}>` }}
+              </a-select-option>
+            </a-select>
           </a-form-item>
 
-          <a-form-item label="主题" name="subject" :rules="[{ required: true, message: '请输入邮件主题' }]">
-            <a-input v-model:value="formState.subject" />
+          <a-form-item label="主题">
+            <a-input v-model:value="formState.subject" :disabled="!!selectedHistoryId" />
           </a-form-item>
 
-          <a-form-item label="正文内容" name="content" :rules="[{ required: true, message: '请输入邮件内容' }]">
-            <RichTextEditor v-model="formState.content" />
+          <a-form-item label="正文内容">
+            <RichTextEditor v-model="formState.content" :readonly="!!selectedHistoryId" />
           </a-form-item>
 
-          <a-form-item label="附件" name="attachments">
-            <a-upload v-model:file-list="fileList" :multiple="true" :before-upload="beforeUpload"
-              @remove="handleRemove">
-              <a-button>
-                <upload-outlined />
-                选择文件
-              </a-button>
-            </a-upload>
+          <!-- 附件展示 -->
+          <a-form-item label="附件" v-if="formState.files.length">
+            <a-list :data-source="formState.files" size="small">
+              <template #renderItem="{ item }">
+                <a-list-item>
+                  <!-- <paper-clip-outlined /> -->
+                  📎
+                  <a :href="item" target="_blank">{{ extractFileNameRegex(item.split('/').pop()) }}</a>
+                </a-list-item>
+              </template>
+            </a-list>
           </a-form-item>
 
-          <a-form-item :wrapper-col="{ offset: 4 }">
-            <a-button type="primary" html-type="submit" :loading="sending" >
+          <!-- 发送按钮 -->
+          <a-form-item :wrapper-col="{ offset: 4 }" v-if="!selectedHistoryId">
+            <a-button type="primary" html-type="submit" :loading="sending" @click="handleSubmit">
               发送邮件
             </a-button>
           </a-form-item>
@@ -71,24 +87,73 @@
 import { ref, reactive, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import RichTextEditor from '@/views/RichTextEditor.vue';
-import { sendEmail } from '@/api/emails'
+import { PaperClipOutlined } from '@ant-design/icons-vue';
+import { sendEmail, getAllEmailUsers, getEmailHistory } from '@/api/emails'
 
 const formState = reactive({
   from: '',
-  to: '',
+  to: [],
   subject: '',
   content: '',
+  files: []
 });
-
+const allUsers = ref([]);
 const fileList = ref([]);
 const sending = ref(false);
 const historyList = ref([]);
 const availableEmails = ref(['717146638@qq.com', 'backup@yourcompany.com']);
+const selectedHistoryId = ref(null);
+
+
+const extractFileNameRegex = (filePath) => {
+  // 先提取纯文件名（含扩展名）
+  const fileName = filePath.split('/').pop();
+  const regex = /_([^_]+)$/;
+  const match = fileName.match(regex);
+  return match ? match[1] : fileName; // 无下划线返回完整文件名
+}
+
+// 处理历史记录选择
+const handleSelectHistory = (item) => {
+  selectedHistoryId.value = item.id;
+
+  // 填充表单数据
+  formState.from = item.senderEmail;
+  formState.to = JSON.parse(item.receiverEmail);
+  formState.subject = item.subject;
+  formState.content = item.content;
+  formState.files = JSON.parse(item.files);
+
+  // 清空上传文件列表
+  fileList.value = [];
+};
+
+// 新建邮件处理
+const handleNewEmail = () => {
+  selectedHistoryId.value = null;
+  resetForm();
+};
+
+// // 修改后的重置表单方法
+const resetForm = () => {
+  formState.from = availableEmails.value[0];
+  formState.to = [];
+  formState.subject = '';
+  formState.content = '';
+  formState.files = [];
+  fileList.value = [];
+};
+
+// // 修改时间格式化方法
+const formatTime = (timeStr) => {
+  const date = new Date(timeStr);
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
 
 // 获取历史记录
 const loadHistory = async () => {
   try {
-    const res = await api.get('/emails/history');
+    const res = await getEmailHistory();
     historyList.value = res.data;
   } catch (error) {
     message.error('获取历史记录失败');
@@ -109,6 +174,8 @@ const beforeUpload = (file) => {
 // 提交表单
 const handleSubmit = async () => {
   sending.value = true;
+  console.log("提交表单，formState:", formState);
+
   try {
     const formData = new FormData();
     Object.entries(formState).forEach(([key, value]) => {
@@ -117,9 +184,6 @@ const handleSubmit = async () => {
     fileList.value.forEach(file => {
       formData.append('attachments', file.originFileObj);
     });
-    console.log(formState);
-    console.log(fileList.value);
-    console.log(formData);
 
     await sendEmail(formData);
 
@@ -133,8 +197,72 @@ const handleSubmit = async () => {
   }
 };
 
+// const resetForm = () => {
+//   formState.subject = ''
+//   formState.content = ''
+//   formState.to = []
+//   fileList.value = []
+// }
+
+const loadAllUser = async () => {
+  try {
+    const res = await getAllEmailUsers();
+    allUsers.value = res.data || [];
+  } catch (error) {
+    message.error('获取用户列表失败');
+  }
+};
+
+// 自定义邮箱校验规则
+const validateEmails = (rule, value) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (value.some(email => !emailRegex.test(email))) {
+    return Promise.reject('包含无效邮箱格式');
+  }
+  return Promise.resolve();
+};
+
+// 邮箱搜索过滤
+const filterEmailOption = (input, option) => {
+  return option.value.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+};
+
 // 初始化加载历史记录
 onMounted(() => {
+  loadAllUser();
   loadHistory();
 });
 </script>
+
+<style scoped>
+/* 增加邮箱展示密度 */
+.ant-select-selection-item {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 优化选项列表展示 */
+.ant-select-item-option-content {
+  font-family: monospace;
+}
+
+/* 选中样式 */
+.selected-history {
+  background-color: #f0faff;
+  border-left: 3px solid #1890ff;
+  cursor: pointer;
+}
+
+/* 附件预览样式 */
+.attachment-preview {
+  color: #666;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* 调整列表项间距 */
+.ant-list-item {
+  padding: 12px 24px;
+}
+</style>

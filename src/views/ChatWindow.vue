@@ -21,13 +21,13 @@
 
     <!-- 输入区 -->
     <div class="input-area">
-      <a-input-group compact>
+      <div class="input-wrapper">
         <a-textarea v-model:value="inputMessage" placeholder="输入消息..." :auto-size="{ minRows: 2, maxRows: 6 }"
-          @pressEnter="sendMessage" />
+          @pressEnter="sendMessage" class="message-input" />
         <a-button type="primary" @click="sendMessage" :loading="isLoading" class="send-btn">
           <send-outlined />
         </a-button>
-      </a-input-group>
+      </div>
     </div>
   </div>
 </template>
@@ -286,5 +286,36 @@ pre {
   white-space: pre-wrap;
   /* font-family: inherit;
   margin: 0; */
+}
+
+.input-area {
+  padding: 16px 0;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.message-input {
+  flex: 1;
+  border-radius: 8px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  resize: none;
+}
+
+.send-btn {
+  height: 64px;
+  width: 64px;
+  border-radius: 0 8px 8px 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-btn.ant-btn-loading {
+  padding: 0;
 }
 </style>

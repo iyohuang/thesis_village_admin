@@ -22,6 +22,7 @@
             <!-- 用户信息 -->
             <template #extra>
               <a-button v-if="item.userId === currentUserId" @click="deletePost(item.id)">删除</a-button>
+              <a-button v-if="item.userId !== currentUserId && isAdmin " @click="deleteOtherPost(item.id)">删除</a-button>
             </template>
             <a-list-item-meta :description="formatTime(item.createdAt)">
               <template #title>
@@ -64,16 +65,20 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { PlusOutlined, HeartOutlined } from '@ant-design/icons-vue';
 import { Modal, message } from 'ant-design-vue';
 import { useRouter } from 'vue-router';
-import { getMoments, createMoment, deleteMoment, toggleMomentLike, commentPost, uploadMomentPic, getCommentsForMoment, toggleCommentLike } from '@/api/social.js';
+import { getMoments, createMoment, deleteMoment, toggleMomentLike, commentPost, uploadMomentPic, getCommentsForMoment, toggleCommentLike, deleteOtherMoment } from '@/api/social.js';
 import CommentList from './CommentList.vue'; // 递归组件
 import useUserInfoStore from '@/store/userInfo.js'
 const userInfoStore = useUserInfoStore();
 const currentUserId = userInfoStore.info.id
 
+console.log("当前用户的 ID：", userInfoStore.info.roleType);
+const isAdmin = computed(() => {
+  return ['admin', 'superadmin'].includes(userInfoStore.info.roleType?.toLowerCase());
+});
 const router = useRouter();
 
 const posts = ref([]);
@@ -178,6 +183,12 @@ const customRequest = async ({ file, onSuccess, onError }: any) => {
 
 const submitPost = async () => {
 
+  if (!newPost.value.content && !newPost.value.images.length) {
+    message.error('动态内容和图片至少填写一个');
+    return;
+  }
+
+
   const payload = {
     content: newPost.value.content,
     images: newPost.value.images // 直接传递数组
@@ -221,12 +232,36 @@ const deletePost = async (id: number) => {
   });
 };
 
+const deleteOtherPost = async (id: number) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: '删除后无法恢复，确定要删除吗？',
+    okText: '确认',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const res = await deleteOtherMoment(id);
+        if (res.code === 200) {
+          message.success('删除成功');
+          // 这里可以触发刷新数据的操作，比如重新请求帖子列表
+        } else {
+          message.error('删除失败，请稍后重试');
+        }
+        location.reload();
+      } catch (error) {
+        // message.error('删除失败，请检查网络'); 
+        console.error('删除失败，请检查', error);
+      }
+    },
+  });
+};
+
 // 监听 Upload 组件的 change 事件
 const handleImageChange = ({ fileList: newFileList }: any) => {
   console.log("图片上传变化", newFileList);
 
   // 过滤
-  fileList.value = newFileList.filter((file: any) => file.status !== "error" && file.type !== "application/pdf");
+  fileList.value = newFileList.filter((file: any) => file.status !== "error" && file.type.startsWith('image/'));
 
   // 确保 images 只存储字符串 URL
   newPost.value.images = newFileList

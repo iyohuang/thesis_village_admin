@@ -56,7 +56,7 @@ export const userListService = () => {
 }
 
 //判断是否存在授权码
-export const checkAuthCodeService = (userId,email) => {
+export const checkAuthCodeService = (userId, email) => {
     return request.get(`/user/isAushCodeExit/${userId}/${email}`);
 }
 
@@ -64,3 +64,29 @@ export const checkAuthCodeService = (userId,email) => {
 export const bindAuthCode = (data) => {
     return request.post(`/user/bindAuthCode`, data);
 }
+
+//获得所有用户权限
+export const userPermissionListService = ({ page, size, role, username }) => {
+    const params = {
+        page: String(page),
+        size: String(size)
+    };
+    if (role != undefined && role !== null) {
+        params.role = String(role);
+    }
+    if (username != undefined && username != null) {
+        params.username = String(username);
+    }
+    return request.get('/auth/list', {
+        params
+    });
+}
+
+//更新用户权限
+export const updateUserPermissionService = (userid, data) => {
+    return request.put(`/auth/${userid}/permissions`, data);
+}
+
+export const updateUserRoleService = (userId, newRole) => {
+    return request.put(`/auth/${userId}/role`, { role: newRole });
+};

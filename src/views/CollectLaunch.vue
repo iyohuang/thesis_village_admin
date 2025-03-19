@@ -25,15 +25,14 @@
         <div class="task-detail">
           <a-descriptions bordered size="small">
             <a-descriptions-item label="已提交用户" :span="2">
-              <a-tag v-for="user in getsubmittedUsers(record)" :key="user.id" style="cursor: pointer;"
-                class="file-tag">
+              <a-tag v-for="user in getsubmittedUsers(record)" :key="user.id" style="cursor: pointer;" class="file-tag">
                 {{ user.username }}
                 <a-tooltip v-if="user.files?.length">
                   <template #title>点击查看{{ user.files.length }}个文件</template>
                   <span style="margin-left: 5px" @click="handleOpenFiles(user.files)">📎</span>
                 </a-tooltip>
                 <a-popconfirm title="确定要移除此用户提交记录？" @confirm="handleDeleteUser(record.id, user.id)">
-                  <a-tooltip title="删除记录">
+                  <a-tooltip title="退回文件">
                     ❌
                   </a-tooltip>
                 </a-popconfirm>
@@ -184,7 +183,7 @@ const getsubmittedUsers = (record) => {
 const getUnsubmittedUsers = (record) => {
   // 获取已提交用户的ID数组
   const submittedIds = record.submittedUsers.map(s => s.userId);
-  
+
   return record.selectedUsers
     .filter(userId => !submittedIds.includes(userId))
     .map(userId => allUsers.value.find(u => u.id === userId));
@@ -232,7 +231,7 @@ const handleModalOk = async () => {
     if (modalType.value === 'create') {
       // 包装成json
       try {
-        const response = await collectAddService(formState.name.trim(), formState.selectedUsers, dayjs(formState.deadline).format('YYYY-MM-DD HH:mm:ss'),currentUserId);
+        const response = await collectAddService(formState.name.trim(), formState.selectedUsers, dayjs(formState.deadline).format('YYYY-MM-DD HH:mm:ss'), currentUserId);
         if (response.data === true) {
           message.success('创建成功');
           collections.value.push({
@@ -281,15 +280,15 @@ const handleModalOk = async () => {
 };
 
 const handleDelete = (id) => {
-  try{
+  try {
     console.log("id:", id);
     removeCollectService(id);
     collections.value = collections.value.filter(c => c.id !== id);
     message.success('删除成功');
-  }catch (error) {
+  } catch (error) {
     message.error('删除失败');
   }
-  
+
 };
 
 const resetForm = () => {
@@ -331,6 +330,9 @@ const loadData = async () => {
     deadline: dayjs(task.deadline).format('YYYY-MM-DD HH:mm'), // 格式化时间
     createTime: dayjs(task.createTime).format('YYYY-MM-DD HH:mm')
   }));
+  pagination.total = collectList.data.total;
+  pagination.current = collectList.data.pageNum || 1;
+  pagination.pageSize = collectList.data.pageSize || 10;
   console.log("collections.value:", collections.value);
 }
 

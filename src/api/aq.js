@@ -20,6 +20,7 @@ export const getQuestions = (params = {}) => {
   })
 }
 
+
 export const getQuestionDetail = (qid) => {
   return request.get(`/aq/questions/${qid}`)
 }

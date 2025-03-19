@@ -43,6 +43,11 @@ export const deleteMoment = async (momentId) => {
     return res;
 };
 
+export const deleteOtherMoment = async (momentId) => {
+    const res = await request.delete(`/moments/deleteother/${momentId}`);
+    return res;
+};
+
 
 export const toggleMomentLike = async (momentId, userId) => {
     // 此处可以设计一个专门的接口，本示例简化处理

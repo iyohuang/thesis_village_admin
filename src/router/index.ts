@@ -51,6 +51,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/email',
     name: 'Email',
     component: () => import('@/views/Email.vue')
+  },
+  {
+    path: '/manage',
+    name: 'Manage',
+    component: () => import('@/views/UserManagement.vue')
   }
 ]
 

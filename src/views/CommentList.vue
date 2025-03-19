@@ -22,7 +22,7 @@
     </div>
     <div v-if="replyActive" class="reply-input">
       <a-input v-model:value="replyContent" :placeholder="`回复 @${comment.userName}`" @pressEnter="reply" />
-      <a-button type="primary" size="small" @click="reply">提交</a-button>
+      <a-button type="primary" size="small" @click="reply(comment.id)">提交</a-button>
     </div>
     <!-- 递归显示子评论 -->
     <div class="child-comments" v-if="comment.children && comment.children.length">
@@ -67,8 +67,8 @@ const toggleLike = () => {
   props.comment.likesCount += props.comment.liked ? 1 : -1;
 };
 
-const reply = () => {
-  emit('reply', props.comment.momentId, props.comment.parentCommentId,replyContent.value);
+const reply = (commentId: number) => {
+  emit('reply', props.comment.momentId, commentId,replyContent.value);
 };
 
 const showReplyInput = () => {

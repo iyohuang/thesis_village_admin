@@ -1,5 +1,6 @@
 <template>
-  <a-form :model="RegisterFormState" @submit="handleRegister" :labelCol="{ span: 6 }" :wrapperCol="{ span: 14 }" class="form-container">
+  <a-form :model="RegisterFormState" @submit="handleRegister" :labelCol="{ span: 6 }" :wrapperCol="{ span: 14 }"
+    class="form-container">
     <a-form-item label="账号">
       <a-input v-model:value="RegisterFormState.username" placeholder="请输入账号" />
     </a-form-item>
@@ -9,13 +10,11 @@
     <a-form-item label="确认密码">
       <a-input-password v-model:value="RegisterFormState.confirmPassword" placeholder="请确认密码" />
     </a-form-item>
-    <a-form-item>
-      <a-button type="primary" html-type="submit">
-        注册
-      </a-button>
-      <a-button @click="switchToLogin" style="margin-left: 10px">
-        去登录
-      </a-button>
+    <a-form-item :wrapperCol="{ span: 12, offset: 6 }">
+      <div style="display: flex; justify-content: center; width: 100%">
+        <a-button type="primary" html-type="submit">注册</a-button>
+        <a-button @click="switchToLogin" style="margin-left: 10px">去登录</a-button>
+      </div>
     </a-form-item>
   </a-form>
 </template>

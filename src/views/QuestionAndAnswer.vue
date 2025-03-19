@@ -7,7 +7,7 @@
                 <a-menu v-model:selectedKeys="selectedTags" mode="vertical" @click="handleTagClick">
                     <a-menu-item v-for="tag in sortedTags" :key="tag.id">
                         <template #icon><tag-outlined /></template>
-                        {{ tag.name }} ({{ tagCountMap[tag.id] || 0 }})
+                        {{ tag.name }} <span v-if="tagCountMap[tag.id]">({{ tagCountMap[tag.id] }})</span>
                     </a-menu-item>
                 </a-menu>
             </a-layout-sider>
@@ -16,7 +16,7 @@
             <a-layout-content class="content-area">
                 <!-- 提问表单 -->
                 <a-card name="questionForm" class="ask-card" title="我要提问">
-                    <a-form :model="newQuestion" :rules="myrules" >
+                    <a-form :model="newQuestion" :rules="myrules">
                         <a-form-item name="title" label="问题标题" required>
                             <a-input v-model:value="newQuestion.title" placeholder="请输入问题标题" :maxlength="50"
                                 show-count />
@@ -280,8 +280,21 @@ const getTagName = (tagId: number) => {
 };
 
 const handleTagClick = ({ key }: { key: number }) => {
-    selectedTags.value = [key];
-    console.log('Filtered Questions:', filteredQuestions.value);
+    // 切换选中状态
+    const index = selectedTags.value.indexOf(key);
+    if (index > -1) {
+        // 如果已选中则取消
+        selectedTags.value = [];
+    } else {
+        // 否则选中新标签
+        selectedTags.value = [key];
+    }
+
+    // 重置到第一页
+    pagination.value.current = 1;
+
+    // 触发数据加载
+    loadData();
 };
 
 const loadData = async () => {
@@ -294,7 +307,7 @@ const loadData = async () => {
             getQuestions({
                 page: pagination.value.current,
                 pageSize: pagination.value.pageSize,
-                tagIds: selectedTags.value
+                tagId: selectedTags.value[0]
             })
         ]);
 
@@ -320,27 +333,6 @@ const loadData = async () => {
         // 设置分页总数
         pagination.value.total = questionsRes.data.total;
 
-        // questions.value = questionsRes.data.records.map(item => {
-        //     console.log("resanswers.data;",resanswers);
-
-        //     item.answers = resanswers.data;
-        //     if (resanswers.code === 200) {
-        //         item.answers = resanswers.data.map(item2 => {
-        //             if (typeof item2.files === 'string') {
-        //                 try {
-        //                     item2.files = JSON.parse(item2.files);
-        //                 } catch (error) {
-        //                     console.error('解析 files 失败：', error);
-        //                     item2.files = [];
-        //                 }
-        //             }
-        //             return item2;
-        //         });
-        //     } else {
-        //         item.answers = [];
-        //     }
-        //     return item;
-        // });
     } catch (error) {
         message.error('数据加载失败，请稍后再试');
         console.error('加载问题数据时发生错误:', error);
@@ -574,14 +566,16 @@ onMounted(() => {
 }
 
 ::v-deep(.ant-tag-green) {
-  margin-left: 8px; /* 单独控制已采纳标签左间距 */
-  order: 1; /* 将标签显示在用户名右侧 */
+    margin-left: 8px;
+    /* 单独控制已采纳标签左间距 */
+    order: 1;
+    /* 将标签显示在用户名右侧 */
 }
 
 ::v-deep(.ant-tag-green) {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>
